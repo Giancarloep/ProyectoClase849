@@ -13,12 +13,8 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleLogin = () => {
     try {
-      const allowed = login(email);
-      if (allowed) {
-        navigation.navigate("MainTabs");
-      } else {
-        console.log("no tiene acceso");
-      }
+      login(email, password);
+      navigation.navigate("MainTabs");
     } catch (error) {
       console.log(error);
     }

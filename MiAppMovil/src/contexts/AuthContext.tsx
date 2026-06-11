@@ -1,4 +1,6 @@
 import { createContext, useContext, useState } from "react";
+import { supabase } from "../services/supabaseClient";
+import { Alert } from "react-native";
 
 //1. Tipado de objeto principal del contexto
 type User = {
@@ -8,7 +10,7 @@ type User = {
 
 type AuthContextType = {
     user: User | null; 
-    login: (email: string)=> boolean;
+    login: (email: string, password: string)=>  Promise<void>;
     logout: ()=> void;
 }
 
@@ -33,16 +35,20 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
     //inicializacion de estado con objeto nulo(vacio)
     const [user, setUser] = useState<User>(null);
 
-    const login = (email: string): boolean => {
-        const allowed = email.endsWith('.edu');
-        if (allowed){
-            setUser({email});
+    const login = async (email: string, password:string) => {
+        const {data, error} = await supabase.auth.signInWithPassword({
+            email,
+            password
+        }); 
+        if (error){
+            Alert.alert("Error al iniciar sesion", error.message);
         }
-        return allowed;
+        console.log(data);
     }
 
-    const logout = () => {
-        setUser(null);
+    const logout = async () => {
+       await supabase.auth.signOut();
+       setUser(null);
     };
 
     return (
