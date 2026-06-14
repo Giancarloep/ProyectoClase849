@@ -1,7 +1,8 @@
 import CustomInput from "../components/CustomInput";
 import CustomButton from "../components/CustomButton";
 import ScreenWrapper from "../components/ScreenWrapper";
-import { useState, Alert } from "react";
+import { useState } from "react";
+import { Alert } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { i18n } from "../contexts/LanguageContext";
 import { supabase } from "../services/supabaseClient";

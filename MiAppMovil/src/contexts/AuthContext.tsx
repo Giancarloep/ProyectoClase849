@@ -11,7 +11,7 @@ type User = {
 
 type AuthContextType = {
     user: User | null; 
-    login: (email: string, password: string)=>  Promise<void>;
+    login: (email: string, password: string)=>  Promise<boolean>;
     logout: ()=> void;
 }
 
@@ -50,7 +50,7 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
         }
     }
 
-    const login = async (email: string, password:string) => {
+    const login = async (email: string, password:string): Promise<boolean> => {
         const {data, error} = await supabase.auth.signInWithPassword({
             email,
             password
@@ -58,8 +58,10 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
         
         if (error){
             Alert.alert("Error al iniciar sesion", error.message);
+            return false;
         }
-        setUserSession(data);        
+        setUserSession(data);
+        return true;
     }
 
     const logout = async () => {
