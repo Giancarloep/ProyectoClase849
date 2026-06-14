@@ -1,56 +1,63 @@
-// src/screens/LoginScreen.tsx
-import React from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
-import ScreenWrapper from '../components/ScreenWrapper';
-import CustomButton from '../components/CustomButton';
-import { supabase } from '../services/supabaseClient';
+import CustomInput from "../components/CustomInput";
+import CustomButton from "../components/CustomButton";
+import ScreenWrapper from "../components/ScreenWrapper";
+import { useState, Alert } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { i18n } from "../contexts/LanguageContext";
+import { supabase } from "../services/supabaseClient";
+import * as WebBrowser from "expo-web-browser";
 
-const LoginScreen = ({ navigation }: any) => {
+WebBrowser.maybeCompleteAuthSession();
 
-  const handleGoogleLogin = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    });
+export default function LoginScreen({ navigation }: any) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-    if (error) {
-      Alert.alert('Error', error.message);
-      return;
+  const { login } = useAuth();
+
+  const handleLogin = async () => {
+    const success = await login(email, password);
+    if (success) {
+      navigation.navigate("MainTabs");
     }
+  };
 
-    // Supabase abre automáticamente el navegador para autenticarse con Google
-    console.log('Redirigiendo a Google...', data);
+  const handleGoogleSignIn = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+    });
+    if (error) Alert.alert("Error con Google", error.message);
   };
 
   return (
     <ScreenWrapper>
-      <View style={styles.container}>
-        <Text style={styles.title}>Iniciar sesión</Text>
+      <CustomInput
+        type="email"
+        placeholder="Ingresa tu correo"
+        value={email}
+        onChange={setEmail}
+      />
 
-        {/* Botón SSO Google */}
-        <CustomButton
-          title="Continuar con Google"
-          variant="secondary"
-          onPress={handleGoogleLogin}
-        />
+      <CustomInput
+        type="password"
+        placeholder="Ingresa tu contraseña"
+        value={password}
+        onChange={setPassword}
+      />
 
-      </View>
+      <CustomButton title={i18n.t("signIn")} onPress={handleLogin} />
+
+      <CustomButton 
+        title="Continuar con Google" 
+        onPress={handleGoogleSignIn}
+        variant="secondary"
+      />
+
+      <CustomButton
+        title="¿No tienes cuenta? Regístrate"
+        onPress={() => navigation.navigate("Register")}
+        variant="secondary"
+      />
     </ScreenWrapper>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    gap: 16,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-});
-
-export default LoginScreen;
+}

@@ -19,6 +19,9 @@ const skincareSlice = createSlice({
     name: "skincare",
     initialState,
     reducers:{
+        setProducts: (state, action: PayloadAction<Product[]>) => {
+            state.products = action.payload;
+        },
         addProduct: (state, action: PayloadAction<Omit<Product,"id">>) => {
           const newProduct: Product = {
             ...action.payload,
@@ -68,6 +71,7 @@ const skincareSlice = createSlice({
 });
 
 export const {
+setProducts,
 addProduct,
 updateProduct,
 deleteProduct,

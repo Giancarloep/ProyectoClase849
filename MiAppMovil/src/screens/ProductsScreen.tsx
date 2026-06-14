@@ -1,207 +1,165 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import { View, Text, StyleSheet, Alert } from "react-native";
+import { CompositeScreenProps } from "@react-navigation/native";
+import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import CustomInput from "../components/CustomInput";
+import CustomButton from "../components/CustomButton";
+import ProductCard from "../components/ProductCard";
+import ScreenWrapper from "../components/ScreenWrapper";
+import SectionTitle from "../components/SectionTitle";
+import TagChip from "../components/TagChip";
+import { useTheme } from "../contexts/ThemeContext";
+import { RootStackParamList } from "../navigation/StackNavigator";
+import { TabsParamList } from "../navigation/TabsNavigator";
+import { supabase } from "../services/supabaseClient";
 import {
-  Alert,
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import ScreenWrapper from '../components/ScreenWrapper';
-import CustomInput from '../components/CustomInput';
-import CustomButton from '../components/CustomButton';
-import { supabase } from '../services/supabaseClient';
+  ProductCategory,
+  PRODUCT_CATEGORIES,
+  CATEGORY_LABELS,
+} from "../utils/types/Skincare";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { setProducts } from "../store/slices/skincareSlice";
 
-// Tipo para un producto
-type Product = {
-  id: string;
-  name: string;
-  brand: string;
-  category: string;
-  created_at: string;
-};
+type Props = CompositeScreenProps<
+  BottomTabScreenProps<TabsParamList, "Products">,
+  NativeStackScreenProps<RootStackParamList>
+>;
 
-const CATEGORIES = ['Limpiador', 'Tónico', 'Sérum', 'Hidratante', 'Protector Solar'];
+export default function ProductsScreen({ navigation }: Props) {
+  const dispatch = useAppDispatch();
+  const products = useAppSelector((state) => state.skincare.products);
 
-const ProductsScreen = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [name, setName] = useState('');
-  const [brand, setBrand] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const { colors } = useTheme();
   const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState("");
+  const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState<ProductCategory>("cleanser");
 
-  // ─── GET Products ───────────────────────────────────────────
-  const fetchProducts = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Alert.alert('Error', error.message);
-      return;
-    }
-
-    if (data) setProducts(data);
-  };
-
-  // Carga los productos al montar el componente
   useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        dispatch(setProducts(data));
+      }
+    };
     fetchProducts();
-  }, []);
+  }, [dispatch]);
 
-  // ─── CREATE Product ─────────────────────────────────────────
   const handleAddProduct = async () => {
-    if (!name.trim() || !brand.trim()) {
-      Alert.alert('Campos incompletos', 'Nombre y marca son obligatorios.');
-      return;
-    }
-
-    setLoading(true);
-
-    const { error } = await supabase
-      .from('products')
-      .insert([{
-        name: name.trim(),
-        brand: brand.trim(),
-        category,
-      }])
+    if (!name.trim() || !brand.trim()) return;
+    const { data, error } = await supabase
+      .from("products")
+      .insert([{ name: name.trim(), brand: brand.trim(), category }])
       .select();
-
-    setLoading(false);
-
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert("Error", error.message);
       return;
     }
-
-    // Limpiar formulario
-    setName('');
-    setBrand('');
-    setCategory(CATEGORIES[0]);
+    if (data) {
+      dispatch(setProducts([...products, ...data]));
+    }
+    setName("");
+    setBrand("");
+    setCategory("cleanser");
     setShowForm(false);
-
-    // Recargar lista
-    fetchProducts();
   };
-
-  // ─── Render de cada producto ─────────────────────────────────
-  const renderProduct = ({ item }: { item: Product }) => (
-    <View style={styles.card}>
-      <Text style={styles.productName}>{item.name}</Text>
-      <Text style={styles.productBrand}>{item.brand}</Text>
-      <Text style={styles.productCategory}>{item.category}</Text>
-    </View>
-  );
 
   return (
     <ScreenWrapper>
-      <View style={styles.container}>
-        <Text style={styles.title}>Mis Productos</Text>
+      <SectionTitle
+        title="Mis Productos"
+        subtitle="Registra los productos de tu rutina de skincare"
+      />
 
-        {/* Botón para mostrar/ocultar formulario */}
-        <CustomButton
-          title={showForm ? 'Cancelar' : '+ Agregar Producto'}
-          variant="primary"
-          onPress={() => setShowForm(!showForm)}
-        />
+      <CustomButton
+        title={showForm ? "Cancelar" : "Agregar producto"}
+        onPress={() => setShowForm(!showForm)}
+        variant={showForm ? "secondary" : "primary"}
+      />
 
-        {/* Formulario de nuevo producto */}
-        {showForm && (
-          <View style={styles.form}>
-            <CustomInput
-              placeholder="Nombre del producto"
-              value={name}
-              onChange={setName}
-            />
-
-            <CustomInput
-              placeholder="Marca"
-              value={brand}
-              onChange={setBrand}
-            />
-
-            <CustomInput
-              placeholder="Categoría"
-              value={category}
-              onChange={setCategory}
-            />
-
-            <CustomButton
-              title={loading ? 'Guardando...' : 'Guardar Producto'}
-              variant="primary"
-              onPress={handleAddProduct}
-            />
-          </View>
-        )}
-
-        {/* Lista de productos */}
-        {products.length === 0 ? (
-          <Text style={styles.empty}>No hay productos aún.</Text>
-        ) : (
-          <FlatList
-            data={products}
-            keyExtractor={(item) => item.id}
-            renderItem={renderProduct}
-            style={styles.list}
+      {showForm && (
+        <View style={[styles.form, { backgroundColor: colors.inputBackground }]}>
+          <Text style={[styles.formLabel, { color: colors.primary }]}>
+            Nuevo producto
+          </Text>
+          <CustomInput
+            placeholder="Nombre del producto"
+            value={name}
+            onChange={setName}
           />
-        )}
-      </View>
+          <CustomInput
+            placeholder="Marca"
+            value={brand}
+            onChange={setBrand}
+          />
+          <Text style={[styles.categoryLabel, { color: colors.textSecondary }]}>
+            Categoría
+          </Text>
+          <View style={styles.categoryRow}>
+            {PRODUCT_CATEGORIES.map((cat) => (
+              <TagChip
+                key={cat}
+                label={CATEGORY_LABELS[cat]}
+                selected={category === cat}
+                onPress={() => setCategory(cat)}
+              />
+            ))}
+          </View>
+          <CustomButton title="Guardar producto" onPress={handleAddProduct} />
+        </View>
+      )}
+
+      <SectionTitle title={`Productos (${products.length})`} />
+
+      {products.length === 0 ? (
+        <Text style={[styles.empty, { color: colors.textSecondary }]}>
+          Aún no tienes productos registrados. Agrega tu primer producto.
+        </Text>
+      ) : (
+        products.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            onPress={() =>
+              navigation.navigate("ProductDetail", { productId: product.id })
+            }
+          />
+        ))
+      )}
     </ScreenWrapper>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    gap: 16,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    textAlign: 'center',
+  form: {
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "gray",
+    padding: 14,
+    marginTop: 12,
     marginBottom: 8,
   },
-  form: {
-    gap: 12,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#f5f5f5',
-  },
-  list: {
-    marginTop: 8,
-  },
-  card: {
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  productName: {
+  formLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "600",
+    marginBottom: 8,
   },
-  productBrand: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
+  categoryLabel: {
+    fontSize: 13,
+    marginBottom: 4,
   },
-  productCategory: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
+  categoryRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 10,
   },
   empty: {
-    textAlign: 'center',
-    color: '#aaa',
-    marginTop: 40,
-    fontSize: 16,
+    textAlign: "center",
+    marginTop: 20,
+    fontSize: 14,
   },
 });
-
-export default ProductsScreen;
