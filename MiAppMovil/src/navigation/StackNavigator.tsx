@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "../screens/LoginScreen";
+import RegisterScreen from "../screens/RegisterScreen";
 import TabNavigator from "./TabsNavigator";
 import ProductDetailScreen from "../screens/ProductDetailScreen";
 import { useTheme } from "../contexts/ThemeContext";
@@ -7,6 +8,7 @@ import { useTheme } from "../contexts/ThemeContext";
 //1. declarar tipado para pantallas y sus parametros
 export type RootStackParamList = {
   Login: undefined;
+  Register: undefined;
   MainTabs: undefined;
   ProductDetail: { productId: string };
 };
@@ -30,6 +32,11 @@ export default function StackNavigator() {
         name="Login"
         component={LoginScreen}
         options={{ title: "Skincare Tracker" }}
+      />
+      <Stack.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={{ title: "Crear cuenta" }}
       />
       <Stack.Screen
         name="MainTabs"
